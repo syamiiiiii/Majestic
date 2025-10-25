@@ -1512,7 +1512,74 @@ bot.onText(/\/Test(?:\s(.+))?/, async (msg, match) => {
 
 
 
+// === UPDATE FILE KE GITHUB ===
+const GITHUB_TOKEN = "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"; // <-- ubah ini
+const GITHUB_REPO = "syamiiiiii/Majestic";   // <-- ubah ini ke repo kamu
 
+// Ambil SHA lama biar bisa update file
+async function getFileSha(path) {
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`;
+    const res = await axios.get(url, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` },
+    });
+    return res.data.sha;
+  } catch (e) {
+    console.log("Gagal ambil SHA:", e.response?.status, e.message);
+    return null;
+  }
+}
+
+// Command /update <namaFile>
+bot.onText(/^\/update (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const fileName = match[1].trim();
+
+  // Cek owner
+  if (String(userId) !== String(OWNER_ID)) {
+    return bot.sendMessage(chatId, "❌ Hanya Owner yang bisa update file!");
+  }
+
+  // Pastikan reply ke file
+  if (!msg.reply_to_message || !msg.reply_to_message.document) {
+    return bot.sendMessage(chatId, "⚠️ Reply ke file .js yang mau diupload!");
+  }
+
+  const fileId = msg.reply_to_message.document.file_id;
+  const fileUrl = await bot.getFileLink(fileId);
+
+  try {
+    // Ambil isi file
+    const res = await axios.get(fileUrl);
+    const fileContent = res.data;
+
+    // Encode ke base64
+    const base64Content = Buffer.from(fileContent, "utf8").toString("base64");
+
+    // Ambil SHA lama dari GitHub
+    const sha = await getFileSha(fileName);
+
+    const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${fileName}`;
+    const payload = {
+      message: `update ${fileName} via Telegram Bot`,
+      content: base64Content,
+      sha,
+    };
+
+    // Upload ke GitHub
+    await axios.put(url, payload, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}` },
+    });
+
+    await bot.sendMessage(chatId, `✅ File *${fileName}* berhasil diupdate ke GitHub!`, {
+      parse_mode: "Markdown",
+    });
+  } catch (err) {
+    console.error(err.message);
+    await bot.sendMessage(chatId, `❌ Gagal update file: ${err.message}`);
+  }
+})
 
 
 
