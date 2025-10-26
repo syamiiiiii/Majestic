@@ -1523,7 +1523,6 @@ bot.onText(/\/Test(?:\s(.+))?/, async (msg, match) => {
 
 
 
-
 const sessions = new Map();
 const SESSIONS_DIR = path.join(__dirname, "sessions");
 fs.ensureDirSync(SESSIONS_DIR);
